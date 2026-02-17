@@ -9,10 +9,18 @@
 SOCKET clients[2];
 Board board;
 
+bool alive[2] = { true, true };
+
+
 void SendAll(const std::string& msg) {
     for (int i = 0; i < 2; i++) {
-        if (clients[i] != INVALID_SOCKET) {
-            send(clients[i], msg.c_str(), (int)msg.size(), 0);
+        if (!alive[i]) continue;
+
+        int r = send(clients[i], msg.c_str(), (int)msg.size(), 0);
+        if (r <= 0) {
+            alive[i] = false;
+            closesocket(clients[i]);
+            std::cout << "Client " << i << " disconnected (send)\n";
         }
     }
 }
@@ -62,6 +70,7 @@ int main() {
 
         SOCKET maxSock = 0;
         for (int i = 0; i < 2; i++) {
+			if (!alive[i]) continue;
             FD_SET(clients[i], &readfds);
             if (clients[i] > maxSock) maxSock = clients[i];
         }
@@ -75,8 +84,8 @@ int main() {
                 if (FD_ISSET(clients[i], &readfds)) {
                     int r = recv(clients[i], buf, sizeof(buf) - 1, 0);
                     if (r <= 0) {
-                        closesocket(clients[i]);
-                        clients[i] = INVALID_SOCKET;
+                        alive[i] = false;          
+                        closesocket(clients[i]);   
                         continue;
                     }
 
