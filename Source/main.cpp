@@ -11,7 +11,9 @@ Board board;
 
 void SendAll(const std::string& msg) {
     for (int i = 0; i < 2; i++) {
-        send(clients[i], msg.c_str(), (int)msg.size(), 0);
+        if (clients[i] != INVALID_SOCKET) {
+            send(clients[i], msg.c_str(), (int)msg.size(), 0);
+        }
     }
 }
 
@@ -20,8 +22,8 @@ std::string SerializeBoard() {
     for (int y = 0; y < 8; y++) {
         for (int x = 0; x < 8; x++) {
             Stone st = board.Get(x, y);
-            s += (st == BLACK ? '1' :
-                st == WHITE ? '2' : '0');
+            s += (st == BLACK ? 'B' :
+                st == WHITE ? 'W' : '.');
         }
     }
     s += "\n";
@@ -72,7 +74,11 @@ int main() {
             for (int i = 0; i < 2; i++) {
                 if (FD_ISSET(clients[i], &readfds)) {
                     int r = recv(clients[i], buf, sizeof(buf) - 1, 0);
-                    if (r <= 0) continue;
+                    if (r <= 0) {
+                        closesocket(clients[i]);
+                        clients[i] = INVALID_SOCKET;
+                        continue;
+                    }
 
                     buf[r] = 0;
 
