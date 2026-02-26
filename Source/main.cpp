@@ -8,9 +8,7 @@
 
 SOCKET clients[2];
 Board board;
-
 bool alive[2] = { true, true };
-
 
 void SendAll(const std::string& msg) {
     for (int i = 0; i < 2; i++) {
@@ -20,21 +18,22 @@ void SendAll(const std::string& msg) {
         if (r <= 0) {
             alive[i] = false;
             closesocket(clients[i]);
-            std::cout << "Client " << i << " disconnected (send)\n";
         }
     }
 }
 
+// ★ 改行付き＆確実に64マス送る
 std::string SerializeBoard() {
-    std::string s = "BOARD ";
+    std::string s = "BOARD\n";
+
     for (int y = 0; y < 8; y++) {
         for (int x = 0; x < 8; x++) {
             Stone st = board.Get(x, y);
             s += (st == BLACK ? 'B' :
-                st == WHITE ? 'W' : '.');
+                (st == WHITE ? 'W' : '.'));
         }
+        s += "\n"; // ★ 見やすくする
     }
-    s += "\n";
     return s;
 }
 
@@ -59,6 +58,7 @@ int main() {
         std::cout << "Client " << i << " connected\n";
     }
 
+    // 初期盤面送信
     SendAll("START\n");
     SendAll(SerializeBoard());
 
@@ -70,7 +70,7 @@ int main() {
 
         SOCKET maxSock = 0;
         for (int i = 0; i < 2; i++) {
-			if (!alive[i]) continue;
+            if (!alive[i]) continue;
             FD_SET(clients[i], &readfds);
             if (clients[i] > maxSock) maxSock = clients[i];
         }
@@ -81,18 +81,21 @@ int main() {
 
         if (select((int)maxSock + 1, &readfds, nullptr, nullptr, &tv) > 0) {
             for (int i = 0; i < 2; i++) {
+                if (!alive[i]) continue;
+
                 if (FD_ISSET(clients[i], &readfds)) {
                     int r = recv(clients[i], buf, sizeof(buf) - 1, 0);
                     if (r <= 0) {
-                        alive[i] = false;          
-                        closesocket(clients[i]);   
+                        alive[i] = false;
+                        closesocket(clients[i]);
                         continue;
                     }
 
                     buf[r] = 0;
+                    std::string msg(buf);
 
                     int x, y;
-                    if (sscanf_s(buf, "PUT %d %d", &x, &y) == 2) {
+                    if (sscanf_s(msg.c_str(), "PUT %d %d", &x, &y) == 2) {
                         if (board.CanPut(x, y)) {
                             board.Put(x, y);
 
