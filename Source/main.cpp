@@ -11,10 +11,12 @@ Board board;
 bool alive[2] = { true, true };
 
 void SendAll(const std::string& msg) {
+    std::string sendMsg = msg; // ←そのまま送る
+
     for (int i = 0; i < 2; i++) {
         if (!alive[i]) continue;
 
-        int r = send(clients[i], msg.c_str(), (int)msg.size(), 0);
+        int r = send(clients[i], sendMsg.c_str(), (int)sendMsg.size(), 0);
         if (r <= 0) {
             alive[i] = false;
             closesocket(clients[i]);
@@ -22,7 +24,7 @@ void SendAll(const std::string& msg) {
     }
 }
 
-// ★ 改行付き＆確実に64マス送る
+// ? 正しい盤面送信
 std::string SerializeBoard() {
     std::string s = "BOARD\n";
 
@@ -30,10 +32,12 @@ std::string SerializeBoard() {
         for (int x = 0; x < 8; x++) {
             Stone st = board.Get(x, y);
             s += (st == BLACK ? 'B' :
-                (st == WHITE ? 'W' : '.'));
+                st == WHITE ? 'W' : '.');
         }
-        s += "\n"; // ★ 見やすくする
     }
+
+    s += "\nEND_BOARD\n"; // ←1回だけ
+
     return s;
 }
 
@@ -58,7 +62,19 @@ int main() {
         std::cout << "Client " << i << " connected\n";
     }
 
-    // 初期盤面送信
+    // ? 初期盤面（これ超重要）
+    board.SetFromString(
+        "........"
+        "........"
+        "........"
+        "...WB..."
+        "...BW..."
+        "........"
+        "........"
+        "........"
+    );
+
+    // 初期送信
     SendAll("START\n");
     SendAll(SerializeBoard());
 

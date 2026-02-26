@@ -1,36 +1,79 @@
 #include "Board.h"
 
+// =====================
+// コンストラクタ
+// =====================
 Board::Board() {
-    for (int y = 0; y < 8; y++)
-        for (int x = 0; x < 8; x++)
-            board[x][y] = EMPTY;
+    SetFromString(
+        "........"
+        "........"
+        "........"
+        "...WB..."
+        "...BW..."
+        "........"
+        "........"
+        "........"
+    );
 
-    board[3][3] = board[4][4] = WHITE;
-    board[3][4] = board[4][3] = BLACK;
     turn = BLACK;
-
-    UpdatePuttable();   // ★ 最初のハイライト生成
+    UpdatePuttable();
 }
 
+// =====================
+// 文字列 → 盤面
+// =====================
+void Board::SetFromString(const std::string& s)
+{
+    if (s.size() < 64) return;
+
+    int i = 0;
+    for (int y = 0; y < 8; y++) {
+        for (int x = 0; x < 8; x++) {
+            char c = s[i++];
+
+            if (c == 'B') board[x][y] = BLACK;
+            else if (c == 'W') board[x][y] = WHITE;
+            else board[x][y] = EMPTY;
+        }
+    }
+
+    // ★これ超重要
+    UpdatePuttable();
+}
+
+// =====================
+// 相手
+// =====================
 Stone Board::Opponent(Stone s) const {
     return s == BLACK ? WHITE : BLACK;
 }
 
+// =====================
+// 範囲チェック
+// =====================
 bool Board::In(int x, int y) const {
     return x >= 0 && x < 8 && y >= 0 && y < 8;
 }
 
+// =====================
+// ひっくり返せるか（方向）
+// =====================
 bool Board::CanFlipDir(int x, int y, int dx, int dy, Stone s) const {
     int nx = x + dx, ny = y + dy;
     if (!In(nx, ny) || board[nx][ny] != Opponent(s)) return false;
 
     while (true) {
-        nx += dx; ny += dy;
+        nx += dx;
+        ny += dy;
+
         if (!In(nx, ny) || board[nx][ny] == EMPTY) return false;
         if (board[nx][ny] == s) return true;
     }
 }
 
+// =====================
+// 置けるか
+// =====================
 bool Board::CanPut(int x, int y) const {
     if (!In(x, y) || board[x][y] != EMPTY) return false;
 
@@ -43,9 +86,13 @@ bool Board::CanPut(int x, int y) const {
     return false;
 }
 
+// =====================
+// 石を置く
+// =====================
 void Board::Put(int x, int y) {
 
-    if (!puttable[x][y]) return;
+    // ★ここ重要（安全）
+    if (!CanPut(x, y)) return;
 
     board[x][y] = turn;
 
@@ -66,14 +113,21 @@ void Board::Put(int x, int y) {
         }
     }
 
+    // 手番交代
     turn = Opponent(turn);
-    UpdatePuttable();   // ★ 次の手番用
+
+    // 次の置ける場所更新
+    UpdatePuttable();
 }
 
+// =====================
+// 置ける場所更新
+// =====================
 void Board::UpdatePuttable()
 {
     for (int y = 0; y < 8; y++) {
         for (int x = 0; x < 8; x++) {
+
             puttable[x][y] = false;
 
             if (board[x][y] != EMPTY) continue;
@@ -92,11 +146,17 @@ void Board::UpdatePuttable()
     }
 }
 
+// =====================
+// 置けるか（キャッシュ）
+// =====================
 bool Board::IsPuttable(int x, int y) const
 {
     return puttable[x][y];
 }
 
+// =====================
+// 取得
+// =====================
 Stone Board::Get(int x, int y) const {
     return board[x][y];
 }
@@ -105,6 +165,9 @@ Stone Board::GetTurn() const {
     return turn;
 }
 
+// =====================
+// 置ける場所ある？
+// =====================
 bool Board::HasAnyPuttable() const
 {
     for (int y = 0; y < 8; y++)
@@ -114,6 +177,9 @@ bool Board::HasAnyPuttable() const
     return false;
 }
 
+// =====================
+// 石数カウント
+// =====================
 int Board::CountStone(Stone s) const
 {
     int cnt = 0;
@@ -124,25 +190,32 @@ int Board::CountStone(Stone s) const
     return cnt;
 }
 
+// =====================
+// 終了判定
+// =====================
 bool Board::IsGameEnd() const
 {
     if (HasAnyPuttable())
         return false;
 
-    // 相手番も確認
     Stone backup = turn;
+
+    // 相手確認
     const_cast<Board*>(this)->turn = Opponent(turn);
     const_cast<Board*>(this)->UpdatePuttable();
 
     bool opponentCan = HasAnyPuttable();
 
-    // 元に戻す
+    // 戻す
     const_cast<Board*>(this)->turn = backup;
     const_cast<Board*>(this)->UpdatePuttable();
 
     return !opponentCan;
 }
 
+// =====================
+// パス
+// =====================
 void Board::Pass()
 {
     turn = Opponent(turn);

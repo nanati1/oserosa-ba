@@ -1,35 +1,62 @@
 #pragma once
-enum Stone { EMPTY, BLACK, WHITE };
+#include <string>
 
-class Board {
+enum Stone
+{
+    EMPTY,
+    BLACK,
+    WHITE
+};
+
+class Board
+{
 public:
     Board();
 
-    bool CanPut(int x, int y) const;
+    // 文字列から盤面設定
+    void SetFromString(const std::string& s);
+
+    // 石を置く
     void Put(int x, int y);
 
+    // 置けるか
+    bool CanPut(int x, int y) const;
+
+    // 置ける場所更新
     void UpdatePuttable();
+
+    // 置ける場所か
     bool IsPuttable(int x, int y) const;
 
-
+    // 石取得
     Stone Get(int x, int y) const;
+
+    // 手番取得
     Stone GetTurn() const;
 
+    // 置ける場所ある？
     bool HasAnyPuttable() const;
-    int CountStone(Stone s) const;
+
+    // ゲーム終了？
     bool IsGameEnd() const;
 
-    //パス判定
-    void Pass();
+    // 石カウント
+    int CountStone(Stone s) const;
 
+    // パス
+    void Pass();
 
 private:
     Stone board[8][8];
+    bool puttable[8][8];
     Stone turn;
 
-    bool puttable[8][8];   // ★ ハイライト情報
-
-    bool In(int x, int y) const;
+    // 相手取得
     Stone Opponent(Stone s) const;
+
+    // 範囲内？
+    bool In(int x, int y) const;
+
+    // 方向チェック
     bool CanFlipDir(int x, int y, int dx, int dy, Stone s) const;
 };
