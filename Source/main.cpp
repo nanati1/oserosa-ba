@@ -11,16 +11,9 @@ Board board;
 bool alive[2] = { true, true };
 
 void SendAll(const std::string& msg) {
-    std::string sendMsg = msg; // ©‚»‚Ì‚Ü‚Ü‘—‚é
-
     for (int i = 0; i < 2; i++) {
-        if (!alive[i]) continue;
-
-        int r = send(clients[i], sendMsg.c_str(), (int)sendMsg.size(), 0);
-        if (r <= 0) {
-            alive[i] = false;
-            closesocket(clients[i]);
-        }
+        int r = send(clients[i], msg.c_str(), (int)msg.size(), 0);
+        printf("SEND TO %d : %d bytes\n", i, r);
     }
 }
 
@@ -36,8 +29,7 @@ std::string SerializeBoard() {
         }
     }
 
-    s += "\nEND_BOARD\n"; // ©1‰ñ‚¾‚¯
-
+    s += "\nEND_BOARD\n";
     return s;
 }
 
@@ -75,8 +67,11 @@ int main() {
     );
 
     // ‰Šú‘—M
-    SendAll("START\n");
-    SendAll(SerializeBoard());
+    SendAll("START\n" + SerializeBoard());
+
+    std::string first = "START\n" + SerializeBoard();
+    printf("FIRST SEND:\n%s\n", first.c_str());
+    SendAll(first);
 
     char buf[256];
 
